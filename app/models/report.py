@@ -57,6 +57,10 @@ class Report(Base):
     # AI - generated confirmation text in Macedonian
     ai_confirmation_text: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    # Citizen rating (CR-06)
+    rating: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    rating_comment: Mapped[str | None] = mapped_column(Text, nullable=True)
+
     user: Mapped[User] = relationship(back_populates="reports")
     category: Mapped[Category | None] = relationship(back_populates="reports")
     status: Mapped[Status | None] = relationship(back_populates="reports")

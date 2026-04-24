@@ -56,6 +56,7 @@ REPORTS = [
         longitude=21.4254,
         category_id=1,   # Infrastructure
         status_id=1,     # Submitted
+        priority="high",
     ),
     Report(
         description="Broken street light on Oak Avenue.",
@@ -64,6 +65,7 @@ REPORTS = [
         longitude=21.4261,
         category_id=1,   # Infrastructure
         status_id=2,     # In Progress
+        priority="medium",
     ),
     Report(
         description="Graffiti on the wall of the community centre.",
@@ -72,6 +74,27 @@ REPORTS = [
         longitude=21.4270,
         category_id=3,   # Safety
         status_id=3,     # Resolved
+        priority="low",
+    ),
+    Report(
+        description="Overgrown bushes blocking the sidewalk on Bulevar Partizanski Odredi.",
+        user_id=CITIZEN_ID,
+        latitude=41.9985,
+        longitude=21.4150,
+        category_id=2,   # Environment
+        status_id=5,     # Closed
+        priority="medium",
+    ),
+    Report(
+        description="Water leak from a pipe near the primary school.",
+        user_id=CITIZEN_ID,
+        latitude=42.0010,
+        longitude=21.4300,
+        category_id=1,   # Infrastructure
+        status_id=5,     # Closed
+        priority="high",
+        rating=5,
+        rating_comment="Брзо и ефикасно решено!",
     ),
 ]
 

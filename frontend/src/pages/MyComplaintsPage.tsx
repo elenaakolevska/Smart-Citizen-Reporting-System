@@ -11,7 +11,7 @@ import { Search, Plus, MapPin, Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { fetchReports } from "@/services/reports";
 import { useLookups } from "@/hooks/useLookups";
-import { deriveTitle, formatDate, formatCoords, getStatusStyle } from "@/lib/reportHelpers";
+import { deriveTitle, formatDate, formatCoords, getStatusStyle, getPriorityStyle, formatPriority } from "@/lib/reportHelpers";
 
 export default function MyComplaintsPage() {
   const navigate = useNavigate();
@@ -100,7 +100,14 @@ export default function MyComplaintsPage() {
                 <Card key={r.id} className="hover:shadow-md transition-shadow cursor-pointer group" onClick={() => navigate(`/complaints/${r.id}`)}>
                   <CardContent className="p-5 space-y-3">
                     <div className="flex justify-between items-start">
-                      <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">{deriveTitle(r.description)}</h3>
+                      <div className="space-y-1">
+                        <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">{deriveTitle(r.description)}</h3>
+                        {r.priority && (
+                          <Badge variant="outline" className={`text-[10px] h-5 px-1.5 ${getPriorityStyle(r.priority)}`}>
+                            {formatPriority(r.priority)}
+                          </Badge>
+                        )}
+                      </div>
                       <Badge variant="outline" className={getStatusStyle(r.status_id)}>{statusLabel(r.status_id)}</Badge>
                     </div>
                     <p className="text-sm text-muted-foreground line-clamp-2">{r.description}</p>

@@ -30,3 +30,25 @@ export function formatDate(iso: string): string {
 export function formatCoords(lat: number, lng: number): string {
   return `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
 }
+
+const priorityStyles: Record<string, string> = {
+  low: "bg-slate-100 text-slate-700 border-slate-200",
+  medium: "bg-blue-100 text-blue-700 border-blue-200",
+  high: "bg-orange-100 text-orange-700 border-orange-200",
+  urgent: "bg-red-100 text-red-700 border-red-200",
+};
+
+export function getPriorityStyle(priority: string | null): string {
+  if (!priority) return "bg-slate-100 text-slate-700 border-slate-200";
+  return priorityStyles[priority.toLowerCase()] ?? "bg-slate-100 text-slate-700 border-slate-200";
+}
+
+export function formatPriority(priority: string | null): string {
+  if (!priority) return "Непознато";
+  const p = priority.toLowerCase();
+  if (p === "low") return "Низок";
+  if (p === "medium") return "Среден";
+  if (p === "high") return "Висок";
+  if (p === "urgent") return "Итен";
+  return priority;
+}

@@ -22,6 +22,15 @@ class UserRead(BaseModel):
     id: UUID
     email: EmailStr
     role: UserRole
+    email_notifications_enabled: bool
+
+
+class UserSettingsRead(BaseModel):
+    email_notifications: bool
+
+
+class UserSettingsUpdate(BaseModel):
+    email_notifications: bool
 
 
 class CurrentUser(BaseModel):

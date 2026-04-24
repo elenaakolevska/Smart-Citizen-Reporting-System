@@ -24,6 +24,9 @@ export interface ReportRead {
   status_id: number | null;
   user_id: string;
   created_at: string;
+  priority: string | null;
+  rating: number | null;
+  rating_comment: string | null;
   possible_duplicate_of: number | null;
   history_entries: HistoryRead[];
   comments: CommentRead[];
@@ -34,6 +37,7 @@ export interface ReportCreate {
   latitude: number | null;
   longitude: number | null;
   category_id?: number | null;
+  priority?: string | null;
 }
 
 export function fetchReports(): Promise<ReportRead[]> {
@@ -55,5 +59,25 @@ export function addComment(reportId: number, content: string): Promise<CommentRe
   return apiFetch<CommentRead>(`/reports/${reportId}/comments`, {
     method: "POST",
     body: JSON.stringify({ content }),
+  });
+}
+
+/**
+ * Rate a closed report (CR-06)
+ */
+export async function rateReport(reportId: number, rating: number, comment?: string): Promise<void> {
+  return apiFetch<void>(`/reports/${reportId}/rate`, {
+    method: "POST",
+    body: JSON.stringify({ rating, rating_comment: comment }),
+  });
+}
+
+/**
+ * Update report priority (CR-02)
+ */
+export async function updateReportPriority(reportId: number, priority: string): Promise<void> {
+  return apiFetch<void>(`/reports/${reportId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ priority }),
   });
 }

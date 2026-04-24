@@ -17,7 +17,15 @@ from app.models.history import History
 from app.models.report import Report
 from app.models.comment import Comment
 from app.schemas.attachment import AttachmentRead
-from app.schemas.report import CommentCreate, CommentRead, ReportCreate, ReportRead, ReportUpdate, StatusUpdate
+from app.schemas.report import (
+    CommentCreate,
+    CommentRead,
+    ReportCreate,
+    ReportRead,
+    ReportRating,
+    ReportUpdate,
+    StatusUpdate,
+)
 from app.schemas.user import CurrentUser, UserRole
 from app.services.ai_service import classify_text, generate_confirmation_message, generate_confirmation_mk
 from app.utils.duplicate_detection import check_duplicate
@@ -294,6 +302,27 @@ def update_status(
     if status_in.status_id != report.status_id:
         _record_status_history(db, report, status_in.status_id, current_user.id)
     report.status_id = status_in.status_id
+    db.commit()
+    db.refresh(report)
+    return ReportRead.model_validate(report)
+
+
+def rate_report(
+    db: Session, *, report_id: int, rating_in: ReportRating, current_user: CurrentUser
+) -> ReportRead:
+    report = _get_or_404(db, report_id)
+    if report.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the owner can rate the report")
+    
+    # Check if closed (status_id 5)
+    if report.status_id != 5:
+        raise HTTPException(status_code=400, detail="Report must be closed before rating")
+    
+    if report.rating is not None:
+        raise HTTPException(status_code=400, detail="Report already rated")
+    
+    report.rating = rating_in.rating
+    report.rating_comment = rating_in.rating_comment
     db.commit()
     db.refresh(report)
     return ReportRead.model_validate(report)

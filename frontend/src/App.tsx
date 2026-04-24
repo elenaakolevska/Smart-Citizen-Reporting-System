@@ -15,6 +15,7 @@ import AssignedComplaintsPage from "./pages/AssignedComplaintsPage";
 import ManageComplaintsPage from "./pages/ManageComplaintsPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import PublicMapPage from "./pages/PublicMapPage";
+import SettingsPage from "./pages/SettingsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,6 +45,7 @@ function AppRoutes() {
           <Route path="/my-complaints" element={<MyComplaintsPage />} />
           <Route path="/new-complaint" element={<NewComplaintPage />} />
           <Route path="/complaints/:id" element={<ComplaintDetailPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
         </>
       )}
 

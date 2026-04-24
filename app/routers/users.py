@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.db.session import get_db
-from app.schemas.user import CurrentUser, UserRead
+from app.schemas.user import CurrentUser, UserRead, UserSettingsRead, UserSettingsUpdate
 from app.services import user_service
 from app.utils.dependencies import get_current_user
 
@@ -31,3 +31,22 @@ def upsert_me(
         role=current_user.role,
     )
     return UserRead.model_validate(user)
+
+
+@router.get("/me/settings", response_model=UserSettingsRead)
+def get_my_settings(
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> UserSettingsRead:
+    """Get the current user's preferences."""
+    return user_service.get_user_settings(db, user_id=current_user.id)
+
+
+@router.patch("/me/settings", response_model=UserSettingsRead)
+def update_my_settings(
+    settings_in: UserSettingsUpdate,
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> UserSettingsRead:
+    """Update the current user's preferences."""
+    return user_service.update_user_settings(db, user_id=current_user.id, settings_in=settings_in)

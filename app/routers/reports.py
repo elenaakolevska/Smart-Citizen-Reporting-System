@@ -3,7 +3,15 @@ from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.schemas.attachment import AttachmentRead
-from app.schemas.report import CommentCreate, CommentRead, ReportCreate, ReportRead, ReportUpdate, StatusUpdate
+from app.schemas.report import (
+    CommentCreate,
+    CommentRead,
+    ReportCreate,
+    ReportRead,
+    ReportRating,
+    ReportUpdate,
+    StatusUpdate,
+)
 from app.schemas.user import CurrentUser, UserRole
 from app.services import report_service
 from app.utils.dependencies import get_current_user, require_roles
@@ -68,6 +76,17 @@ def update_report_status(
 ) -> ReportRead:
     """Change a report's status. Officers and admins only. Always logs history."""
     return report_service.update_status(db, report_id=report_id, status_in=status_in, current_user=current_user)
+
+
+@router.post("/{report_id}/rate", response_model=ReportRead)
+def rate_report(
+    report_id: int,
+    rating_in: ReportRating,
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> ReportRead:
+    """Rate a closed report. Citizens only for their own reports."""
+    return report_service.rate_report(db, report_id=report_id, rating_in=rating_in, current_user=current_user)
 
 
 @router.delete("/{report_id}", status_code=204)

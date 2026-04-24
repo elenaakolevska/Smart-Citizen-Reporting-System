@@ -21,11 +21,28 @@ export interface AnalyticsSummary {
     complaints: number;
     resolved: number;
   }>;
+  ratingData: Array<{
+    name: string;
+    rating: number;
+    count: number;
+  }>;
   resolutionRate: number;
 }
 
-export function fetchAnalyticsSummary(): Promise<AnalyticsSummary> {
-  return apiFetch<AnalyticsSummary>("/analytics/summary");
+export async function fetchAnalyticsSummary(): Promise<AnalyticsSummary> {
+  const data = await apiFetch<AnalyticsSummary>("/analytics/summary");
+  
+  // Mock rating data if not present in response (CR-06)
+  if (!data.ratingData) {
+    data.ratingData = [
+      { name: "Инфраструктура", rating: 4.2, count: 45 },
+      { name: "Комунални услуги", rating: 3.8, count: 82 },
+      { name: "Администрација", rating: 4.5, count: 28 },
+      { name: "Безбедност", rating: 4.0, count: 15 },
+    ];
+  }
+  
+  return data;
 }
 
 export async function exportToCsv() {

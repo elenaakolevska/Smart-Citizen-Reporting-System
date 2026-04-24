@@ -151,6 +151,30 @@ export default function AnalyticsPage() {
 
           <Card>
             <CardHeader>
+              <CardTitle className="text-base">Задоволство по оддел</CardTitle>
+              <p className="text-xs text-muted-foreground">Просечна оценка (1-5 ѕвезди)</p>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={data.ratingData} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                  <XAxis type="number" domain={[0, 5]} hide />
+                  <YAxis dataKey="name" type="category" tick={{ fontSize: 10 }} width={100} />
+                  <Tooltip 
+                    formatter={(value: number) => [`${value} / 5`, 'Оценка']}
+                    contentStyle={{ fontSize: '12px' }}
+                  />
+                  <Bar dataKey="rating" name="Оценка" fill="hsl(45, 93%, 47%)" radius={[0, 4, 4, 0]} barSize={20} />
+                </BarChart>
+              </ResponsiveContainer>
+              <div className="mt-2 text-center">
+                <p className="text-xs text-muted-foreground italic">Врз основа на {data.ratingData.reduce((acc, curr) => acc + curr.count, 0)} оценки</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
               <CardTitle className="text-base">Стапка на решавање</CardTitle>
               <p className="text-xs text-muted-foreground">Решени наспроти нерешени</p>
             </CardHeader>

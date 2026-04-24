@@ -29,6 +29,12 @@ class ReportUpdate(BaseModel):
     longitude: float | None = None
     category_id: int | None = None
     status_id: int | None = None
+    priority: str | None = None
+
+
+class ReportRating(BaseModel):
+    rating: int = Field(..., ge=1, le=5)
+    rating_comment: str | None = Field(default=None, max_length=1000)
 
 
 class StatusUpdate(BaseModel):
@@ -76,5 +82,7 @@ class ReportRead(ReportBase):
     updated_at: datetime
     possible_duplicate_of: int | None = None
     ai_confirmation_text: str | None = None
+    rating: int | None = None
+    rating_comment: str | None = None
     history_entries: list[HistoryRead] = []
     comments: list[CommentRead] = []

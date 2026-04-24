@@ -35,6 +35,7 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+    email_notifications_enabled: Mapped[bool] = mapped_column(default=True, nullable=False)
 
     reports: Mapped[list[Report]] = relationship(back_populates="user", cascade="all, delete-orphan")
     comments: Mapped[list[Comment]] = relationship(back_populates="user", cascade="all, delete-orphan")

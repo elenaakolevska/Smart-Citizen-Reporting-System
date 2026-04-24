@@ -22,6 +22,7 @@ const citizenNav: NavItem[] = [
   { title: "Интерактивна мапа", url: "/public-map", icon: MapIcon },
   { title: "Мои пријави", url: "/my-complaints", icon: FileText },
   { title: "Нова пријава", url: "/new-complaint", icon: PlusCircle },
+  { title: "Поставки", url: "/settings", icon: Settings },
 ];
 
 const officerNav: NavItem[] = [

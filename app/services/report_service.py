@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+from app.services.email_service import send_email, build_report_email
 import logging
 from time import perf_counter
 from uuid import UUID
@@ -31,6 +31,7 @@ from app.schemas.user import CurrentUser, UserRole
 from app.services.ai_service import assign_priority, classify_text, generate_confirmation_message, generate_confirmation_mk
 from app.utils.duplicate_detection import check_duplicate
 
+print("REPORT SERVICE LOADED")
 logger = logging.getLogger(__name__)
 
 DEFAULT_SUBMITTED_STATUS = "Submitted"
@@ -51,6 +52,7 @@ def _classifier_label_for_category(category_name: str) -> str:
 # ---------------------------------------------------------------------------
 
 def create_report(db: Session, *, report_in: ReportCreate, current_user: CurrentUser) -> ReportRead:
+
     now = datetime.now(tz=timezone.utc)
 
     default_status_id = db.scalar(
@@ -58,6 +60,7 @@ def create_report(db: Session, *, report_in: ReportCreate, current_user: Current
     )
 
     category_id = report_in.category_id
+
     if category_id is not None:
         if category_id <= 0:
             logger.info("Ignoring invalid category_id=%r on report creation.", category_id)
@@ -65,7 +68,6 @@ def create_report(db: Session, *, report_in: ReportCreate, current_user: Current
         elif db.get(Category, category_id) is None:
             logger.info("Ignoring unknown category_id=%r on report creation.", category_id)
             category_id = None
-
     possible_duplicate_of = check_duplicate(
         description=report_in.description,
         latitude=report_in.latitude,
@@ -79,19 +81,24 @@ def create_report(db: Session, *, report_in: ReportCreate, current_user: Current
             "New report may be a duplicate of report id=%s — saving with flag set.",
             possible_duplicate_of,
         )
-
     report = Report(
         description=report_in.description,
         latitude=report_in.latitude,
         longitude=report_in.longitude,
-        user_id=current_user.id,
-        category_id=category_id,
+        user_id="12345678-1234-1234-1234-123456789012",        category_id=category_id,
         status_id=default_status_id,
         possible_duplicate_of=possible_duplicate_of,
     )
     db.add(report)
     db.commit()
     db.refresh(report)
+
+    send_email(
+        to_email="kalinajovanovska13@gmail.com",
+        subject="New Report Created",
+        content=build_report_email(report.description),
+    )
+
     return _to_report_read(report)
 
 

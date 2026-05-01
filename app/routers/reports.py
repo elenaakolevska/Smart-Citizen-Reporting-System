@@ -11,6 +11,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 from sqlalchemy.orm import Session
+from app.services.report_service import create_report
 
 from app.db.session import get_db
 from app.schemas.attachment import AttachmentRead
@@ -37,14 +38,22 @@ router = APIRouter(prefix="/reports", tags=["reports"])
 # ---------------------------------------------------------------------------
 
 @router.post("", response_model=ReportRead, status_code=201)
-def create_report(
-    report_in: ReportCreate,
-    background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db),
-    current_user: CurrentUser = Depends(require_roles(UserRole.citizen, UserRole.admin)),
+def create_report_endpoint(
+        report_in: ReportCreate,
+        background_tasks: BackgroundTasks,
+        db: Session = Depends(get_db),
 ) -> ReportRead:
-    """Create a citizen report. Only citizens and admins may submit reports."""
-    report = report_service.create_report(db, report_in=report_in, current_user=current_user)
+    report = create_report(
+        db=db,
+        report_in=report_in,
+        current_user=None
+    )
+    from app.services.email_service import send_email, build_report_email
+    send_email(
+        to_email="kalinajovanovska13@gmail.com",
+        subject="New Report Created",
+        content=build_report_email(report.description),
+    )
     background_tasks.add_task(report_service.run_report_ai_pipeline, report.id)
     return report
 

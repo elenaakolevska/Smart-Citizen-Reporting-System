@@ -10,7 +10,14 @@ from app.core.config import get_settings
 from app.services.ai_service import warmup_model
 from app.utils.dependencies import DEV_USER, get_current_user
 from app.utils.file_upload import UPLOAD_DIR
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
+load_dotenv(dotenv_path=r"C:\Users\kvaza\PycharmProjects\first\Smart-Citizen-Reporting-Systemmm\.env")
+
+print("EMAIL USER:", os.getenv("EMAIL_USER"))
+print("EMAIL PASS:", os.getenv("EMAIL_PASS"))
 settings = get_settings()
 
 app = FastAPI(

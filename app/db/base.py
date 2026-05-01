@@ -9,4 +9,5 @@ from app.models.notification import Notification  # noqa: E402,F401
 from app.models.rating import Rating              # noqa: E402,F401
 from app.models.report import Report              # noqa: E402,F401
 from app.models.status import Status              # noqa: E402,F401
-from app.models.user import User                  # noqa: E402,F401
+from app.models.user import User
+from app.models.email_log import EmailLog# noqa: E402,F401

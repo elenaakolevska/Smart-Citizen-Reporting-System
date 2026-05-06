@@ -1,0 +1,38 @@
+.git/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+
+# IDE / assistant
+.idea/
+.vscode/
+.claude/
+
+# Secrets — never copy real env files into images.
+.env
+.env.*
+!.env.example
+
+# Ancillary stacks / artifacts not needed in the API image.
+frontend/
+documentation/
+uploads/
+node_modules/
+dist/
+build/
+
+# Local sqlite/scratch
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+
+# Build caches
+.eggs/
+*.egg-info/

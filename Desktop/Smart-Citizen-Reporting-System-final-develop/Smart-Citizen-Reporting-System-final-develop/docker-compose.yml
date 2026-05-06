@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: smart_citizen
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d smart_citizen"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      # In-cluster name 'db' resolves via Compose DNS.
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/smart_citizen
+      SUPABASE_MOCK_VERIFY: "true"
+      DEV_SKIP_AUTH: "true"
+      AI_ENABLED: "false"
+      AI_PRELOAD_ON_STARTUP: "false"
+
+volumes:
+  postgres_data:

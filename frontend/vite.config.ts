@@ -8,10 +8,11 @@ export default defineConfig({
     host: "127.0.0.1",
     port: 8080,
     proxy: {
+      // Frontend now uses /api/v1 directly (see services/api.ts), so the dev
+      // proxy is a straight pass-through to FastAPI on 8000.
       '/api': {
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, '/api/v1')
       }
     },
     hmr: {

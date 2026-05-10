@@ -44,7 +44,7 @@ export function fetchCategoryRatings(): Promise<CategoryRatingAvg[]> {
 
 export async function exportToCsv() {
   const token = localStorage.getItem("auth_token");
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api/v1";
   
   const response = await fetch(`${API_BASE_URL}/analytics/export/csv`, {
     headers: {
@@ -66,7 +66,7 @@ export async function exportToCsv() {
 
 export async function exportToPdf() {
   const token = localStorage.getItem("auth_token");
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api/v1";
   
   const response = await fetch(`${API_BASE_URL}/analytics/export/pdf`, {
     headers: {

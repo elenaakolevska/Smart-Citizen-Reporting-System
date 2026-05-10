@@ -1,7 +1,3 @@
-# Azure-internal DNS. Re-resolves the backend FQDN at request time so a backend
-# revision rollover (new pod IP) doesn't strand nginx with a stale cache.
-resolver 168.63.129.16 valid=30s ipv6=off;
-
 server {
     listen 8080;
     server_name _;
@@ -22,14 +18,18 @@ server {
         add_header Cache-Control "no-store";
     }
 
-    # Trailing slash on proxy_pass strips /api/ and substitutes /api/v1/,
-    # matching FastAPI's settings.api_v1_str mount point. The variable forces
-    # nginx to honour the resolver above instead of caching at startup.
+    # No URI on proxy_pass = forward the request URI unchanged. The frontend
+    # already sends /api/v1/... (see frontend/src/services/api.ts), so we keep
+    # one canonical path end-to-end and avoid path rewrites.
+    # ${BACKEND_FQDN} is resolved by envsubst at container startup using
+    # /etc/resolv.conf (the env's internal DNS, which is the only one that
+    # knows *.internal.<env> FQDNs). nginx caches the IP for the container's
+    # lifetime; the deploy workflow always redeploys the frontend after the
+    # backend, which gives us a fresh resolution on every release.
     location /api/ {
-        set $backend_fqdn ${BACKEND_FQDN};
-        proxy_pass         https://$backend_fqdn/api/v1/;
+        proxy_pass         https://${BACKEND_FQDN};
         proxy_http_version 1.1;
-        proxy_set_header   Host                $backend_fqdn;
+        proxy_set_header   Host                ${BACKEND_FQDN};
         proxy_set_header   X-Forwarded-For     $proxy_add_x_forwarded_for;
         proxy_set_header   X-Forwarded-Proto   $scheme;
         proxy_set_header   X-Real-IP           $remote_addr;
@@ -39,10 +39,9 @@ server {
     }
 
     location /static/ {
-        set $backend_fqdn ${BACKEND_FQDN};
-        proxy_pass         https://$backend_fqdn/static/;
+        proxy_pass         https://${BACKEND_FQDN};
         proxy_http_version 1.1;
-        proxy_set_header   Host                $backend_fqdn;
+        proxy_set_header   Host                ${BACKEND_FQDN};
         proxy_ssl_server_name on;
     }
 

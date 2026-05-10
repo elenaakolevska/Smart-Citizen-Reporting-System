@@ -58,23 +58,27 @@ function AppRoutes() {
           </>
         )}
 
+        {/* Officer/admin land on the dashboard at "/" directly. Avoid <Navigate>
+            redirects here — the role briefly resolves from the Supabase JWT
+            before the backend call lands, so a redirect can fire under a stale
+            JWT claim and strand a citizen on /dashboard with NotFound. */}
         {role === "officer" && (
           <>
+            <Route path="/" element={<DashboardPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/assigned-complaints" element={<AssignedComplaintsPage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
             <Route path="/complaints/:id" element={<ComplaintDetailPage />} />
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
           </>
         )}
 
         {role === "admin" && (
           <>
+            <Route path="/" element={<DashboardPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/manage-complaints" element={<ManageComplaintsPage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
             <Route path="/complaints/:id" element={<ComplaintDetailPage />} />
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
           </>
         )}
 

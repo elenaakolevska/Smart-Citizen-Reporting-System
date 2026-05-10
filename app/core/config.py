@@ -87,6 +87,23 @@ class Settings(BaseSettings):
             return [item.strip() for item in stripped.split(",") if item.strip()]
         return value
 
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def _normalize_database_url(cls, value: object) -> object:
+        # Supabase / Heroku paste a bare `postgres://` or `postgresql://` URI;
+        # SQLAlchemy needs an explicit driver. We bundle psycopg (v3), so pin it.
+        # Whitespace and surrounding quotes are common paste artefacts in CI secrets.
+        if not isinstance(value, str):
+            return value
+        url = value.strip().strip('"').strip("'")
+        if not url:
+            return url
+        if url.startswith("postgres://"):
+            url = "postgresql+psycopg://" + url[len("postgres://") :]
+        elif url.startswith("postgresql://"):
+            url = "postgresql+psycopg://" + url[len("postgresql://") :]
+        return url
+
 
 @lru_cache
 def get_settings() -> Settings:

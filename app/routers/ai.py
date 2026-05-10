@@ -10,7 +10,6 @@ from app.core.config import get_settings
 from app.db.session import get_db
 from app.models.category import Category
 from app.services.ai_service import assign_priority, classify_text, generate_confirmation_mk
-import os
 
 router = APIRouter(prefix="/ai", tags=["ai"])
 
@@ -122,26 +121,10 @@ def analyze_report(
         ).all()
         recent_descriptions = [str(row[0]) for row in recent_rows if row and row[0]]
     except Exception:
-        # DB access failed — try Supabase REST fallback.
-        # Try environment variables as a last-resort (avoids requiring app restart
-        # when .env was modified but get_settings() is cached by lru_cache).
-        supabase_url = settings.supabase_url or os.getenv("SUPABASE_URL")
-        supabase_anon = settings.supabase_anon_key or os.getenv("SUPABASE_ANON_KEY")
+        # DB access failed — try Supabase REST fallback using configured creds.
+        supabase_url = settings.supabase_url
+        supabase_anon = settings.supabase_anon_key
 
-        # If still not configured, try to read a local .env file in the project root.
-        if (not supabase_url or not supabase_anon) and os.path.exists(".env"):
-            try:
-                with open(".env", "r", encoding="utf-8") as f:
-                    for ln in f:
-                        if not supabase_url and ln.strip().upper().startswith("SUPABASE_URL="):
-                            # simple parse: SUPABASE_URL="https://..." or SUPABASE_URL=https://...
-                            val = ln.split("=", 1)[1].strip().strip('"')
-                            supabase_url = supabase_url or val
-                        if not supabase_anon and ln.strip().upper().startswith("SUPABASE_ANON_KEY="):
-                            val = ln.split("=", 1)[1].strip().strip('"')
-                            supabase_anon = supabase_anon or val
-            except Exception:
-                pass
         if not supabase_url or not supabase_anon:
             raise HTTPException(
                 status_code=500,

@@ -23,20 +23,6 @@ def read_me(
     return UserRead.from_orm_with_settings(user)
 
 
-@router.post("/me", response_model=UserRead, status_code=200)
-def upsert_me(
-    db: Session = Depends(get_db),
-    current_user: CurrentUser = Depends(get_current_user),
-) -> UserRead:
-    """Upsert the current user in the local DB."""
-    user = user_service.upsert_user(
-        db,
-        user_id=current_user.id,
-        email=current_user.email,
-    )
-    return UserRead.from_orm_with_settings(user)
-
-
 class RoleUpdate(BaseModel):
     role: UserRole
 

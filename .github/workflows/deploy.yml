@@ -81,20 +81,6 @@ jobs:
       - name: Install containerapp CLI extension
         run: az extension add --name containerapp --upgrade -y
 
-      - name: Apply DB schema patches (idempotent)
-        env:
-          DATABASE_DIRECT_URL: ${{ secrets.DATABASE_DIRECT_URL }}
-        run: |
-          # The app has no migration tooling, so deploys must apply additive
-          # schema changes themselves. Direct URI (port 5432) is required —
-          # the pooled URI (6543) drops session state and breaks DDL.
-          if [ -z "$DATABASE_DIRECT_URL" ]; then
-            echo "::warning::DATABASE_DIRECT_URL not set; skipping schema patch."
-            echo "::warning::Run scripts/migrate.sql manually before the new image rolls out."
-            exit 0
-          fi
-          psql "$DATABASE_DIRECT_URL" -v ON_ERROR_STOP=1 -f scripts/migrate.sql
-
       - name: Ensure resource group + ACA env
         run: |
           az group create -n "$RESOURCE_GROUP" -l "$LOCATION" -o none

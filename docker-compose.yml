@@ -9,7 +9,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d smart_citizen"]
       interval: 5s
@@ -31,6 +31,16 @@ services:
       DEV_SKIP_AUTH: "true"
       AI_ENABLED: "false"
       AI_PRELOAD_ON_STARTUP: "false"
+    volumes:
+      # Persist user uploads across container restarts (mirrors prod Azure Files mount).
+      - app_uploads:/app/uploads
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys;urllib.request.urlopen('http://127.0.0.1:8000/health',timeout=2)\""]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
 
 volumes:
   postgres_data:
+  app_uploads:

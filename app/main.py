@@ -1,4 +1,4 @@
-from pathlib import Path
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,9 +13,19 @@ from app.utils.file_upload import UPLOAD_DIR
 
 settings = get_settings()
 
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    if settings.ai_enabled and settings.ai_preload_on_startup:
+        warmup_model()
+    yield
+
+
 app = FastAPI(
     title=settings.project_name,
     openapi_url=f"{settings.api_v1_str}/openapi.json",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -30,18 +40,9 @@ app.add_middleware(
 if settings.dev_skip_auth:
     app.dependency_overrides[get_current_user] = lambda: DEV_USER
 
-# Serve uploaded files at /static/uploads/<filename>
-UPLOAD_DIR.mkdir(exist_ok=True)
 app.mount("/static/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
 
-# Versioned API routes
 app.include_router(api_router, prefix=settings.api_v1_str)
-
-
-@app.on_event("startup")
-def _startup_warmup_ai() -> None:
-    if settings.ai_enabled and settings.ai_preload_on_startup:
-        warmup_model()
 
 
 @app.get("/health", tags=["health"])

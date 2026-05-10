@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Response
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import select, func
-from datetime import datetime
+from datetime import datetime, timezone
 from io import BytesIO
 from app.db.session import get_db
 from app.models.report import Report
@@ -14,35 +14,18 @@ from app.schemas.rating import CategoryRatingAvg
 from app.schemas.user import CurrentUser, UserRole
 from app.services import rating_service
 from app.utils.dependencies import require_roles
+from app.utils.pdf import register_cyrillic_font
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
 import csv
 import io
-import os
 
 
-def _register_cyrillic_font() -> tuple[str, str]:
-    """Register a Unicode font that supports Cyrillic. Returns (regular, bold) font names."""
-    candidates = [
-        ("C:/Windows/Fonts/arial.ttf", "C:/Windows/Fonts/arialbd.ttf"),
-        ("/usr/share/fonts/truetype/msttcorefonts/Arial.ttf", "/usr/share/fonts/truetype/msttcorefonts/Arial_Bold.ttf"),
-        ("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"),
-        ("/System/Library/Fonts/Helvetica.ttc", "/System/Library/Fonts/Helvetica.ttc"),
-    ]
-    for regular, bold in candidates:
-        if os.path.exists(regular):
-            pdfmetrics.registerFont(TTFont("CyrillicFont", regular))
-            if os.path.exists(bold):
-                pdfmetrics.registerFont(TTFont("CyrillicFont-Bold", bold))
-            else:
-                pdfmetrics.registerFont(TTFont("CyrillicFont-Bold", regular))
-            return "CyrillicFont", "CyrillicFont-Bold"
-    return "Helvetica", "Helvetica-Bold"
+# Number of months included in monthly-trend KPIs (analytics summary + PDF).
+MONTHLY_TREND_WINDOW = 6
 
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
@@ -129,7 +112,7 @@ def get_category_ratings(
 @router.get("/summary")
 def get_analytics_summary(
         db: Session = Depends(get_db),
-        current_user: CurrentUser = Depends(require_roles(UserRole.officer, UserRole.admin))
+        current_user: CurrentUser = Depends(require_roles(UserRole.admin))
 ):
     resolved_status_ids = _status_ids_for_names(db, RESOLVED_STATUS_NAMES)
     active_status_ids = _status_ids_for_names(db, ACTIVE_STATUS_NAMES)
@@ -189,10 +172,10 @@ def get_analytics_summary(
         {"name": "Активни", "value": active_reports},
     ]
 
-    # LineChart: Monthly trend (last 2 months)
+    # LineChart: Monthly trend (last MONTHLY_TREND_WINDOW months, oldest → current)
     monthly_data = []
-    current_month = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    for i in range(1, -1, -1):
+    current_month = datetime.now(timezone.utc).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    for i in range(MONTHLY_TREND_WINDOW - 1, -1, -1):
         month_start = _add_months(current_month, -i)
         month_end = _add_months(month_start, 1)
         month_name = month_start.strftime("%b")
@@ -258,7 +241,7 @@ def export_csv(
         ])
 
     content = output.getvalue().encode("utf-8")
-    filename = f"urbancare_prijavi_{datetime.now().strftime('%d-%m-%Y')}.csv"
+    filename = f"urbancare_prijavi_{datetime.now(timezone.utc).strftime('%d-%m-%Y')}.csv"
     return Response(
         content=content,
         media_type="text/csv; charset=utf-8",
@@ -288,9 +271,9 @@ def export_pdf(
         cat_active = _count_reports(db, Report.category_id == cat.id, _status_filter(active_status_ids))
         category_rows.append([cat.name, str(complaints), str(cat_resolved), str(cat_active)])
 
-    current_month = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    current_month = datetime.now(timezone.utc).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     monthly_rows = []
-    for i in range(1, -1, -1):
+    for i in range(MONTHLY_TREND_WINDOW - 1, -1, -1):
         month_start = _add_months(current_month, -i)
         month_end = _add_months(month_start, 1)
         count = _count_reports(db, Report.created_at >= month_start, Report.created_at < month_end)
@@ -300,7 +283,7 @@ def export_pdf(
                                   Report.created_at < month_end)
         monthly_rows.append([month_start.strftime("%b %Y"), str(count), str(m_resolved), str(m_active)])
 
-    font_regular, font_bold = _register_cyrillic_font()
+    font_regular, font_bold = register_cyrillic_font()
 
     buffer = BytesIO()
     doc = SimpleDocTemplate(
@@ -310,7 +293,6 @@ def export_pdf(
         topMargin=18 * mm, bottomMargin=18 * mm,
         title="Analytics Report",
     )
-    styles = getSampleStyleSheet()
     title_style = ParagraphStyle("CyrTitle", fontName=font_bold, fontSize=18, spaceAfter=4)
     normal_style = ParagraphStyle("CyrNormal", fontName=font_regular, fontSize=10, spaceAfter=2)
     heading_style = ParagraphStyle("CyrHeading", fontName=font_bold, fontSize=12, spaceAfter=4, spaceBefore=6)
@@ -349,7 +331,7 @@ def export_pdf(
 
     story = [
         Paragraph("Аналитички извештај", title_style),
-        Paragraph(f"Генерирано: {datetime.now().strftime('%d.%m.%Y %H:%M')}", normal_style),
+        Paragraph(f"Генерирано: {datetime.now(timezone.utc).strftime('%d.%m.%Y %H:%M')}", normal_style),
         Spacer(1, 6 * mm),
         Paragraph("Клучни показатели", heading_style),
         Spacer(1, 2 * mm),

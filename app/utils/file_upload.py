@@ -17,7 +17,6 @@ ALLOWED_EXTENSIONS: set[str] = {".jpg", ".jpeg", ".png", ".pdf"}
 MAX_FILE_SIZE_BYTES: int = 5 * 1024 * 1024  # 5 MB
 
 UPLOAD_DIR = Path("uploads")
-UPLOAD_DIR.mkdir(exist_ok=True)
 
 STATIC_URL_PREFIX = "/static/uploads"
 
@@ -64,6 +63,7 @@ async def save_upload(file: UploadFile) -> tuple[str, int]:
 
     ext = Path(file.filename or "file").suffix.lower()
     unique_name = f"{uuid.uuid4().hex}{ext}"
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     dest = UPLOAD_DIR / unique_name
     dest.write_bytes(contents)
 

@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import { apiFetch } from "./api";
+import { apiFetch, ApiError } from "./api";
 
 export interface HistoryRead {
   id: string | number;
@@ -397,9 +397,9 @@ export async function fetchReportHistory(reportId: string): Promise<HistoryRead[
 export async function fetchRating(reportId: string): Promise<RatingRead | null> {
   try {
     return await apiFetch<RatingRead>(`/reports/${reportId}/rating`);
-  } catch (err: any) {
-    // If 404, it just means no rating exists yet
-    if (err.message?.includes("404")) return null;
+  } catch (err) {
+    // 404 just means no rating exists yet — anything else is a real error.
+    if (err instanceof ApiError && err.status === 404) return null;
     throw err;
   }
 }

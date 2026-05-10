@@ -43,7 +43,7 @@ class UserRead(BaseModel):
 
 
 class UserSettingsUpdate(BaseModel):
-    email_notifications: bool | None = None
+    email_notifications: bool
 
 
 class CurrentUser(BaseModel):

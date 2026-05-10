@@ -16,14 +16,7 @@ export async function fetchUserProfile(): Promise<UserProfile> {
   return apiFetch<UserProfile>("/users/me");
 }
 
-export async function updateUserProfile(data: Partial<UserProfile>): Promise<UserProfile> {
-  return apiFetch<UserProfile>("/users/me", {
-    method: "PATCH",
-    body: JSON.stringify(data),
-  });
-}
-
-export async function updateUserSettings(settings: Partial<UserSettings>): Promise<UserProfile> {
+export async function updateUserSettings(settings: UserSettings): Promise<UserProfile> {
   return apiFetch<UserProfile>("/users/me/settings", {
     method: "PATCH",
     body: JSON.stringify(settings),

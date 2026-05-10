@@ -1,37 +1,18 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from io import BytesIO, StringIO
 from uuid import UUID
 import csv
-
-import os
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Query, UploadFile
 from fastapi.responses import StreamingResponse
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 from sqlalchemy.orm import Session
 
-
-def _register_cyrillic_font() -> tuple[str, str]:
-    candidates = [
-        ("C:/Windows/Fonts/arial.ttf",   "C:/Windows/Fonts/arialbd.ttf"),
-        ("/usr/share/fonts/truetype/msttcorefonts/Arial.ttf", "/usr/share/fonts/truetype/msttcorefonts/Arial_Bold.ttf"),
-        ("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",   "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"),
-    ]
-    for regular, bold in candidates:
-        if os.path.exists(regular):
-            pdfmetrics.registerFont(TTFont("CyrillicFont", regular))
-            if os.path.exists(bold):
-                pdfmetrics.registerFont(TTFont("CyrillicFont-Bold", bold))
-            else:
-                pdfmetrics.registerFont(TTFont("CyrillicFont-Bold", regular))
-            return "CyrillicFont", "CyrillicFont-Bold"
-    return "Helvetica", "Helvetica-Bold"
+from app.utils.pdf import register_cyrillic_font
 
 from app.db.session import get_db
 from app.schemas.attachment import AttachmentRead
@@ -242,7 +223,7 @@ _EXPORT_COLUMNS = [
 
 
 def _export_filename(prefix: str, ext: str) -> str:
-    return f"{prefix}-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}.{ext}"
+    return f"{prefix}-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}.{ext}"
 
 
 @router.get("/export/csv")
@@ -252,9 +233,9 @@ def export_reports_csv(
     date_from: datetime | None = Query(default=None, description="Filter reports created on or after this datetime"),
     date_to: datetime | None = Query(default=None, description="Filter reports created on or before this datetime"),
     db: Session = Depends(get_db),
-    current_user: CurrentUser = Depends(require_roles(UserRole.officer, UserRole.admin)),
+    current_user: CurrentUser = Depends(require_roles(UserRole.admin)),
 ) -> StreamingResponse:
-    """Stream filtered reports as CSV. Officer/admin only. (FR-08)"""
+    """Stream filtered reports as CSV. Admin only. (FR-08)"""
     reports = report_service.export_reports(
         db, status=status, category=category, date_from=date_from, date_to=date_to,
     )
@@ -291,14 +272,14 @@ def export_reports_pdf(
     date_from: datetime | None = Query(default=None, description="Filter reports created on or after this datetime"),
     date_to: datetime | None = Query(default=None, description="Filter reports created on or before this datetime"),
     db: Session = Depends(get_db),
-    current_user: CurrentUser = Depends(require_roles(UserRole.officer, UserRole.admin)),
+    current_user: CurrentUser = Depends(require_roles(UserRole.admin)),
 ) -> StreamingResponse:
-    """Render filtered reports as a PDF report. Officer/admin only. (FR-08)"""
+    """Render filtered reports as a PDF report. Admin only. (FR-08)"""
     reports = report_service.export_reports(
         db, status=status, category=category, date_from=date_from, date_to=date_to,
     )
 
-    font_regular, font_bold = _register_cyrillic_font()
+    font_regular, font_bold = register_cyrillic_font()
 
     buffer = BytesIO()
     doc = SimpleDocTemplate(
@@ -373,5 +354,5 @@ def _pdf_filter_summary(
         parts.append(f"to: {date_to.isoformat()}")
     if not parts:
         parts.append("no filters")
-    parts.append(f"generated: {datetime.utcnow().isoformat(timespec='seconds')}Z")
+    parts.append(f"generated: {datetime.now(timezone.utc).isoformat(timespec='seconds')}Z")
     return " | ".join(parts)

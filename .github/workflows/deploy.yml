@@ -147,6 +147,8 @@ jobs:
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           SMTP_FROM: ${{ secrets.SMTP_FROM }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          HF_API_TOKEN: ${{ secrets.HF_API_TOKEN }}
           ENV_DOMAIN: ${{ steps.env_domain.outputs.domain }}
         run: |
           # CORS regex permits any sibling Container App in this env (frontend FQDN)
@@ -178,6 +180,20 @@ jobs:
             SMTP_ENVS+=("SMTP_PORT=$SMTP_PORT")
           fi
 
+          # AI fallback secrets. OpenAI is the cross-lingual fallback when BART
+          # gives a weak Cyrillic prediction; HF token raises the inference API
+          # rate limit used by the MK confirmation text generator.
+          AI_SECRETS=()
+          AI_ENVS=()
+          if [ -n "$OPENAI_API_KEY" ]; then
+            AI_SECRETS+=("openai-api-key=$OPENAI_API_KEY")
+            AI_ENVS+=("OPENAI_API_KEY=secretref:openai-api-key")
+          fi
+          if [ -n "$HF_API_TOKEN" ]; then
+            AI_SECRETS+=("hf-api-token=$HF_API_TOKEN")
+            AI_ENVS+=("HF_API_TOKEN=secretref:hf-api-token")
+          fi
+
           if ! az containerapp show -n "$BACKEND_NAME" -g "$RESOURCE_GROUP" -o none 2>/dev/null; then
             az containerapp create \
               -n "$BACKEND_NAME" -g "$RESOURCE_GROUP" \
@@ -192,16 +208,22 @@ jobs:
                 supabase-url="$SUPABASE_URL" \
                 supabase-anon-key="$SUPABASE_ANON_KEY" \
                 "${SMTP_SECRETS[@]}" \
+                "${AI_SECRETS[@]}" \
               --env-vars \
                 DATABASE_URL=secretref:database-url \
                 SUPABASE_URL=secretref:supabase-url \
                 SUPABASE_ANON_KEY=secretref:supabase-anon-key \
                 AI_ENABLED=true \
-                AI_PRELOAD_ON_STARTUP=true \
+                AI_PRELOAD_ON_STARTUP=false \
+                AI_OPENAI_FALLBACK_ENABLED=true \
+                AI_OPENAI_MODEL=gpt-4o-mini \
+                AI_OPENAI_TIMEOUT_SECONDS=15 \
+                AI_HF_INFERENCE_MODEL=mistralai/Mistral-7B-Instruct-v0.3 \
                 DEV_SKIP_AUTH=false \
                 SUPABASE_MOCK_VERIFY=false \
                 BACKEND_CORS_ORIGIN_REGEX="$CORS_REGEX" \
                 "${SMTP_ENVS[@]}" \
+                "${AI_ENVS[@]}" \
               -o none
           else
             # Refresh registry creds (no-op when GHCR is public).
@@ -216,6 +238,7 @@ jobs:
                 supabase-url="$SUPABASE_URL" \
                 supabase-anon-key="$SUPABASE_ANON_KEY" \
                 "${SMTP_SECRETS[@]}" \
+                "${AI_SECRETS[@]}" \
               -o none
             az containerapp update -n "$BACKEND_NAME" -g "$RESOURCE_GROUP" \
               --image "$IMAGE" \
@@ -226,11 +249,16 @@ jobs:
                 SUPABASE_URL=secretref:supabase-url \
                 SUPABASE_ANON_KEY=secretref:supabase-anon-key \
                 AI_ENABLED=true \
-                AI_PRELOAD_ON_STARTUP=true \
+                AI_PRELOAD_ON_STARTUP=false \
+                AI_OPENAI_FALLBACK_ENABLED=true \
+                AI_OPENAI_MODEL=gpt-4o-mini \
+                AI_OPENAI_TIMEOUT_SECONDS=15 \
+                AI_HF_INFERENCE_MODEL=mistralai/Mistral-7B-Instruct-v0.3 \
                 DEV_SKIP_AUTH=false \
                 SUPABASE_MOCK_VERIFY=false \
                 BACKEND_CORS_ORIGIN_REGEX="$CORS_REGEX" \
                 "${SMTP_ENVS[@]}" \
+                "${AI_ENVS[@]}" \
               -o none
           fi
 

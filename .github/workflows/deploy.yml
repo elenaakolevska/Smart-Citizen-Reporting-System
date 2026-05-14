@@ -186,7 +186,7 @@ jobs:
               $GHCR_REG_ARGS \
               --target-port 8000 --ingress internal \
               --min-replicas 1 --max-replicas 1 \
-              --cpu 0.5 --memory 1.0Gi \
+              --cpu 2.0 --memory 4.0Gi \
               --secrets \
                 database-url="$DATABASE_URL" \
                 supabase-url="$SUPABASE_URL" \
@@ -196,8 +196,8 @@ jobs:
                 DATABASE_URL=secretref:database-url \
                 SUPABASE_URL=secretref:supabase-url \
                 SUPABASE_ANON_KEY=secretref:supabase-anon-key \
-                AI_ENABLED=false \
-                AI_PRELOAD_ON_STARTUP=false \
+                AI_ENABLED=true \
+                AI_PRELOAD_ON_STARTUP=true \
                 DEV_SKIP_AUTH=false \
                 SUPABASE_MOCK_VERIFY=false \
                 BACKEND_CORS_ORIGIN_REGEX="$CORS_REGEX" \
@@ -220,12 +220,13 @@ jobs:
             az containerapp update -n "$BACKEND_NAME" -g "$RESOURCE_GROUP" \
               --image "$IMAGE" \
               --min-replicas 1 --max-replicas 1 \
+              --cpu 2.0 --memory 4.0Gi \
               --replace-env-vars \
                 DATABASE_URL=secretref:database-url \
                 SUPABASE_URL=secretref:supabase-url \
                 SUPABASE_ANON_KEY=secretref:supabase-anon-key \
-                AI_ENABLED=false \
-                AI_PRELOAD_ON_STARTUP=false \
+                AI_ENABLED=true \
+                AI_PRELOAD_ON_STARTUP=true \
                 DEV_SKIP_AUTH=false \
                 SUPABASE_MOCK_VERIFY=false \
                 BACKEND_CORS_ORIGIN_REGEX="$CORS_REGEX" \

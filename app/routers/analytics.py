@@ -98,7 +98,7 @@ def _add_months(dt: datetime, months: int) -> datetime:
 @router.get("/ratings", response_model=list[CategoryRatingAvg])
 def get_category_ratings(
         db: Session = Depends(get_db),
-        current_user: CurrentUser = Depends(require_roles(UserRole.admin)),
+        current_user: CurrentUser = Depends(require_roles(UserRole.admin, UserRole.officer)),
 ) -> list[CategoryRatingAvg]:
     """Average citizen rating per category (CR-06).
 
@@ -112,7 +112,7 @@ def get_category_ratings(
 @router.get("/summary")
 def get_analytics_summary(
         db: Session = Depends(get_db),
-        current_user: CurrentUser = Depends(require_roles(UserRole.admin))
+        current_user: CurrentUser = Depends(require_roles(UserRole.admin, UserRole.officer))
 ):
     resolved_status_ids = _status_ids_for_names(db, RESOLVED_STATUS_NAMES)
     active_status_ids = _status_ids_for_names(db, ACTIVE_STATUS_NAMES)
@@ -217,7 +217,7 @@ def get_analytics_summary(
 @router.get("/export/csv")
 def export_csv(
         db: Session = Depends(get_db),
-        current_user: CurrentUser = Depends(require_roles(UserRole.admin))
+        current_user: CurrentUser = Depends(require_roles(UserRole.admin, UserRole.officer))
 ):
     reports = db.scalars(
         select(Report).options(selectinload(Report.category), selectinload(Report.status))
@@ -252,7 +252,7 @@ def export_csv(
 @router.get("/export/pdf")
 def export_pdf(
         db: Session = Depends(get_db),
-        current_user: CurrentUser = Depends(require_roles(UserRole.admin))
+        current_user: CurrentUser = Depends(require_roles(UserRole.admin, UserRole.officer))
 ):
     resolved_status_ids = _status_ids_for_names(db, RESOLVED_STATUS_NAMES)
     active_status_ids = _status_ids_for_names(db, ACTIVE_STATUS_NAMES)

@@ -20,6 +20,8 @@ export default function AnalyticsPage() {
   const [exportingPdf, setExportingPdf] = useState(false);
   const [ratingSort, setRatingSort] = useState<"desc" | "asc">("desc");
 
+  const canViewFullAnalytics = role === "admin" || role === "officer";
+
   const { data, isLoading: isSummaryLoading, error: summaryError } = useQuery({
     queryKey: ["analytics", "summary"],
     queryFn: fetchAnalyticsSummary,
@@ -28,10 +30,10 @@ export default function AnalyticsPage() {
   const { data: ratingData, isLoading: isRatingsLoading } = useQuery({
     queryKey: ["analytics", "ratings"],
     queryFn: fetchCategoryRatings,
-    enabled: role === "admin",
+    enabled: canViewFullAnalytics,
   });
 
-  const isLoading = isSummaryLoading || (role === "admin" && isRatingsLoading);
+  const isLoading = isSummaryLoading || (canViewFullAnalytics && isRatingsLoading);
   const error = summaryError;
 
   const handleExportCsv = async () => {
@@ -116,7 +118,7 @@ export default function AnalyticsPage() {
             <p className="text-muted-foreground text-sm">Следете ги перформансите и задоволството на граѓаните во реално време.</p>
           </div>
           <div className="flex gap-2">
-            {role === "admin" && (
+            {canViewFullAnalytics && (
               <>
                 <Button variant="outline" size="sm" onClick={handleExportCsv} disabled={exportingCsv} aria-label="Извези податоци во CSV формат">
                   {exportingCsv ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileSpreadsheet className="mr-2 h-4 w-4" />}
@@ -197,7 +199,7 @@ export default function AnalyticsPage() {
           </Card>
         </div>
 
-        {role === "admin" && (
+        {canViewFullAnalytics && (
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Месечен тренд</CardTitle>
@@ -220,7 +222,7 @@ export default function AnalyticsPage() {
           </Card>
         )}
 
-        {role === "admin" && ratingData && ratingData.length > 0 && (
+        {canViewFullAnalytics && ratingData && ratingData.length > 0 && (
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">

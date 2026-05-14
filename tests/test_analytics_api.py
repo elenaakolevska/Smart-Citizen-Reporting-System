@@ -109,9 +109,16 @@ class TestAnalyticsSummary:
 
         assert resp.status_code == 200
 
-    def test_returns_403_for_officer(self, officer_client):
-        resp = officer_client.get(f"{ANALYTICS_PREFIX}/summary")
-        assert resp.status_code == 403
+    def test_returns_200_for_officer(self, officer_client):
+        with patch("app.routers.analytics.get_db") as mock_get_db:
+            mock_db = MagicMock()
+            mock_get_db.return_value = iter([mock_db])
+            mock_db.scalar.return_value = 0
+            mock_db.scalars.return_value.all.return_value = []
+
+            resp = officer_client.get(f"{ANALYTICS_PREFIX}/summary")
+
+        assert resp.status_code == 200
 
     def test_returns_403_for_citizen(self, citizen_client):
         resp = citizen_client.get(f"{ANALYTICS_PREFIX}/summary")
@@ -180,9 +187,12 @@ class TestAnalyticsRatings:
 
         assert resp.status_code == 200
 
-    def test_returns_403_for_officer(self, officer_client):
-        resp = officer_client.get(f"{ANALYTICS_PREFIX}/ratings")
-        assert resp.status_code == 403
+    def test_returns_200_for_officer(self, officer_client):
+        with patch("app.routers.analytics.rating_service") as mock_rs:
+            mock_rs.average_ratings_by_category.return_value = []
+            resp = officer_client.get(f"{ANALYTICS_PREFIX}/ratings")
+
+        assert resp.status_code == 200
 
     def test_returns_403_for_citizen(self, citizen_client):
         resp = citizen_client.get(f"{ANALYTICS_PREFIX}/ratings")
@@ -231,9 +241,15 @@ class TestAnalyticsExportCsv:
 
         assert resp.status_code == 200
 
-    def test_returns_403_for_officer(self, officer_client):
-        resp = officer_client.get(f"{ANALYTICS_PREFIX}/export/csv")
-        assert resp.status_code == 403
+    def test_returns_200_for_officer(self, officer_client):
+        with patch("app.routers.analytics.get_db") as mock_get_db:
+            mock_db = MagicMock()
+            mock_get_db.return_value = iter([mock_db])
+            mock_db.scalars.return_value.all.return_value = []
+
+            resp = officer_client.get(f"{ANALYTICS_PREFIX}/export/csv")
+
+        assert resp.status_code == 200
 
     def test_returns_403_for_citizen(self, citizen_client):
         resp = citizen_client.get(f"{ANALYTICS_PREFIX}/export/csv")
@@ -327,9 +343,16 @@ class TestAnalyticsExportPdf:
 
         assert resp.status_code == 200
 
-    def test_returns_403_for_officer(self, officer_client):
-        resp = officer_client.get(f"{ANALYTICS_PREFIX}/export/pdf")
-        assert resp.status_code == 403
+    def test_returns_200_for_officer(self, officer_client):
+        with patch("app.routers.analytics.get_db") as mock_get_db:
+            mock_db = MagicMock()
+            mock_get_db.return_value = iter([mock_db])
+            mock_db.scalar.return_value = 0
+            mock_db.scalars.return_value.all.return_value = []
+
+            resp = officer_client.get(f"{ANALYTICS_PREFIX}/export/pdf")
+
+        assert resp.status_code == 200
 
     def test_returns_403_for_citizen(self, citizen_client):
         resp = citizen_client.get(f"{ANALYTICS_PREFIX}/export/pdf")

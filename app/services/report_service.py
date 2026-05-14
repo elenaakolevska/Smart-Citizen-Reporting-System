@@ -474,10 +474,11 @@ def create_attachment(
     file_size_bytes: int,
     current_user: CurrentUser,
 ) -> AttachmentRead:
-    if current_user.role not in [UserRole.officer, UserRole.admin]:
-        raise HTTPException(status_code=403, detail="Only officers and admins can upload attachments")
-
     report = _get_or_404(db, report_id)
+
+    # Citizens may only attach to their own report; officers/admins may attach to any.
+    if current_user.role == UserRole.citizen and report.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not allowed")
 
     attachment = Attachment(
         report_id=report.id,

@@ -7,8 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, MapPin, Calendar, Tag, History, AlertTriangle, Star, MessageCircle } from "lucide-react";
-import { fetchReportById, updateReportPriority, type PriorityValue, fetchRating } from "@/services/reports";
+import { ChevronLeft, MapPin, Calendar, Tag, History, AlertTriangle, Star, MessageCircle, Paperclip, FileText, ExternalLink } from "lucide-react";
+import { fetchReportById, updateReportPriority, type PriorityValue, fetchRating, fetchReportAttachments } from "@/services/reports";
 import { fetchCategoryRatings } from "@/services/analytics";
 import { useLookups } from "@/hooks/useLookups";
 import { deriveTitle, formatDate, formatCoords, getPriorityLabel, getPriorityStyle, getStatusStyle, isResolvedStatus } from "@/lib/reportHelpers";
@@ -42,6 +42,12 @@ export default function ComplaintDetailPage() {
   const { data: rating } = useQuery({
     queryKey: ["rating", id],
     queryFn: () => fetchRating(id as string),
+    enabled: !!id,
+  });
+
+  const { data: attachments } = useQuery({
+    queryKey: ["attachments", id],
+    queryFn: () => fetchReportAttachments(id as string),
     enabled: !!id,
   });
 
@@ -170,6 +176,50 @@ export default function ComplaintDetailPage() {
                 {report.possible_duplicate_of != null && (
                   <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-900 dark:text-amber-100">
                     Оваа пријава е означена како можен дупликат на пријава: "{report.possible_duplicate_of_report?.description ?? report.possible_duplicate_of}".
+                  </div>
+                )}
+
+                {attachments && attachments.length > 0 && (
+                  <div className="space-y-2 pt-2 border-t">
+                    <h4 className="font-semibold flex items-center gap-2">
+                      <Paperclip className="h-4 w-4" /> Прилози ({attachments.length})
+                    </h4>
+                    <ul className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {attachments.map((a) => {
+                        const isImage = a.content_type.startsWith("image/");
+                        return (
+                          <li key={a.id} className="border rounded-md p-2 bg-muted/20">
+                            <a
+                              href={a.file_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block"
+                              aria-label={`Отвори ${a.original_filename}`}
+                            >
+                              {isImage ? (
+                                <img
+                                  src={a.file_url}
+                                  alt={a.original_filename}
+                                  className="h-28 w-full object-cover rounded"
+                                  loading="lazy"
+                                />
+                              ) : (
+                                <div className="h-28 w-full flex items-center justify-center text-muted-foreground">
+                                  <FileText className="h-10 w-10" />
+                                </div>
+                              )}
+                              <p className="text-xs mt-1 truncate flex items-center gap-1" title={a.original_filename}>
+                                <ExternalLink className="h-3 w-3 shrink-0" />
+                                <span className="truncate">{a.original_filename}</span>
+                              </p>
+                              <p className="text-[10px] text-muted-foreground">
+                                {(a.file_size_bytes / 1024 / 1024).toFixed(2)} MB
+                              </p>
+                            </a>
+                          </li>
+                        );
+                      })}
+                    </ul>
                   </div>
                 )}
                 {canEditPriority && (

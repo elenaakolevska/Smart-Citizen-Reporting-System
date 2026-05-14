@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,12 +6,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertTriangle, Loader2 } from "lucide-react";
+import { AlertTriangle, Loader2, FileText, X, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { createReport } from "@/services/reports";
+import { createReport, uploadReportAttachment } from "@/services/reports";
 import { useLookups } from "@/hooks/useLookups";
 import LocationPicker from "@/components/LocationPicker";
 import { getCategoryMacedonianName } from "@/lib/reportHelpers";
+
+const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
+const MAX_FILES = 5;
+const ALLOWED_TYPES = new Set(["image/jpeg", "image/jpg", "image/png", "application/pdf"]);
+const ALLOWED_EXT_PATTERN = /\.(jpe?g|png|pdf)$/i;
 
 export default function NewComplaintPage() {
   const navigate = useNavigate();
@@ -24,6 +29,78 @@ export default function NewComplaintPage() {
   const [lng, setLng] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<Record<string, string>>({});
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    const next: Record<string, string> = {};
+    for (const f of files) {
+      if (f.type.startsWith("image/")) {
+        next[`${f.name}:${f.size}`] = URL.createObjectURL(f);
+      }
+    }
+    setPreviews(next);
+    return () => {
+      Object.values(next).forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [files]);
+
+  const handleFilesSelected = (selected: FileList | null) => {
+    if (!selected || selected.length === 0) return;
+
+    const incoming = Array.from(selected);
+    const accepted: File[] = [];
+    const rejected: string[] = [];
+
+    for (const f of incoming) {
+      const typeOk = ALLOWED_TYPES.has(f.type) || ALLOWED_EXT_PATTERN.test(f.name);
+      if (!typeOk) {
+        rejected.push(`${f.name} — неподдржан формат`);
+        continue;
+      }
+      if (f.size > MAX_FILE_SIZE_BYTES) {
+        rejected.push(`${f.name} — над 5 MB`);
+        continue;
+      }
+      if (f.size === 0) {
+        rejected.push(`${f.name} — празна датотека`);
+        continue;
+      }
+      accepted.push(f);
+    }
+
+    if (rejected.length > 0) {
+      toast({
+        title: "Некои датотеки беа отфрлени",
+        description: rejected.join("; "),
+        variant: "destructive",
+      });
+    }
+
+    setFiles((prev) => {
+      const merged = [...prev];
+      for (const f of accepted) {
+        const dup = merged.find((m) => m.name === f.name && m.size === f.size);
+        if (!dup) merged.push(f);
+      }
+      if (merged.length > MAX_FILES) {
+        toast({
+          title: "Премногу датотеки",
+          description: `Дозволени се најмногу ${MAX_FILES} прилози.`,
+          variant: "destructive",
+        });
+        return merged.slice(0, MAX_FILES);
+      }
+      return merged;
+    });
+
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const removeFile = (key: string) => {
+    setFiles((prev) => prev.filter((f) => `${f.name}:${f.size}` !== key));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,6 +131,24 @@ export default function NewComplaintPage() {
           title: "Можен дупликат",
           description: `Оваа пријава може да е дупликат на пријава #${report.possible_duplicate_of}.`,
         });
+      }
+
+      // Upload attachments after the report is persisted. Failures are non-fatal:
+      // the report is already created, so we surface a warning and continue.
+      if (files.length > 0) {
+        const results = await Promise.allSettled(
+          files.map((f) => uploadReportAttachment(report.id, f)),
+        );
+        const failed = results
+          .map((r, i) => (r.status === "rejected" ? files[i].name : null))
+          .filter((name): name is string => name != null);
+        if (failed.length > 0) {
+          toast({
+            title: "Дел од приложените слики не се качија",
+            description: failed.join(", "),
+            variant: "destructive",
+          });
+        }
       }
 
       navigate(`/complaints/${report.id}`);
@@ -129,6 +224,69 @@ export default function NewComplaintPage() {
                       Отстрани
                     </Button>
                   </p>
+                )}
+              </div>
+
+              {/* Attachments */}
+              <div className="space-y-2">
+                <Label htmlFor="attachments">Прилози (опционално)</Label>
+                <p className="text-xs text-muted-foreground">JPG, PNG или PDF. До 5 датотеки, секоја до 5 MB.</p>
+                <input
+                  ref={fileInputRef}
+                  id="attachments"
+                  type="file"
+                  multiple
+                  accept="image/jpeg,image/jpg,image/png,application/pdf"
+                  className="hidden"
+                  onChange={(e) => handleFilesSelected(e.target.files)}
+                  disabled={submitting}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={submitting || files.length >= MAX_FILES}
+                  aria-label="Изберете прилози"
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  Избери датотеки {files.length > 0 ? `(${files.length}/${MAX_FILES})` : ""}
+                </Button>
+
+                {files.length > 0 && (
+                  <ul className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2" aria-label="Избрани прилози">
+                    {files.map((f) => {
+                      const key = `${f.name}:${f.size}`;
+                      const preview = previews[key];
+                      return (
+                        <li key={key} className="relative border rounded-md p-2 bg-muted/20">
+                          <button
+                            type="button"
+                            onClick={() => removeFile(key)}
+                            className="absolute top-1 right-1 rounded-full bg-background/80 border p-0.5 hover:bg-destructive hover:text-destructive-foreground"
+                            aria-label={`Отстрани ${f.name}`}
+                            disabled={submitting}
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                          {preview ? (
+                            <img
+                              src={preview}
+                              alt={f.name}
+                              className="h-24 w-full object-cover rounded"
+                            />
+                          ) : (
+                            <div className="h-24 w-full flex items-center justify-center text-muted-foreground">
+                              <FileText className="h-8 w-8" />
+                            </div>
+                          )}
+                          <p className="text-xs mt-1 truncate" title={f.name}>{f.name}</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {(f.size / 1024 / 1024).toFixed(2)} MB
+                          </p>
+                        </li>
+                      );
+                    })}
+                  </ul>
                 )}
               </div>
 

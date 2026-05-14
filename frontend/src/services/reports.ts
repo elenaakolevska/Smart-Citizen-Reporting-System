@@ -57,6 +57,16 @@ export interface ReportCreate {
   status_id?: number | null;
 }
 
+export interface AttachmentRead {
+  id: number;
+  report_id: string;
+  file_url: string;
+  original_filename: string;
+  content_type: string;
+  file_size_bytes: number;
+  created_at: string;
+}
+
 export type PriorityValue = "Низок" | "Среден" | "Висок" | "Итен";
 
 interface AnalyzeReportResponse {
@@ -408,5 +418,18 @@ export async function createRating(reportId: string, data: RatingCreate): Promis
   return apiFetch<RatingRead>(`/reports/${reportId}/rating`, {
     method: "POST",
     body: JSON.stringify(data),
+  });
+}
+
+export async function fetchReportAttachments(reportId: string): Promise<AttachmentRead[]> {
+  return apiFetch<AttachmentRead[]>(`/reports/${reportId}/attachments`);
+}
+
+export async function uploadReportAttachment(reportId: string, file: File): Promise<AttachmentRead> {
+  const form = new FormData();
+  form.append("file", file);
+  return apiFetch<AttachmentRead>(`/reports/${reportId}/attachments`, {
+    method: "POST",
+    body: form,
   });
 }

@@ -189,9 +189,9 @@ async def upload_attachment(
     report_id: UUID,
     file: UploadFile = File(..., description="JPG, PNG or PDF. Max 5 MB."),
     db: Session = Depends(get_db),
-    current_user: CurrentUser = Depends(require_roles(UserRole.officer, UserRole.admin)),
+    current_user: CurrentUser = Depends(get_current_user),
 ) -> AttachmentRead:
-    """Upload evidence to a report. Officers and admins only. Validates type and size."""
+    """Upload evidence to a report. Citizens may attach to their own reports; officers and admins to any. Validates type and size."""
     file_url, file_size_bytes = await save_upload(file)
     return report_service.create_attachment(
         db,
